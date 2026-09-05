@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GrowthMate — Audit Trail</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>GrowthMate</h1>
+      <span class="tagline">Audit Trail</span>
+      <nav>
+        <a href="/static/index.html">Chat</a>
+        <a href="/static/audit.html">Audit Trail</a>
+      </nav>
+    </header>
+
+    <div class="toolbar">
+      <h2>Every money-moving decision, logged</h2>
+      <div>
+        <input type="text" id="session-filter" placeholder="Filter by session_id" value="" />
+        <button id="refresh">Refresh</button>
+      </div>
+    </div>
+
+    <div class="shell">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Time</th>
+            <th>Session</th>
+            <th>Actor</th>
+            <th>Tool</th>
+            <th>Decision</th>
+            <th>Reason</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="8">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/static/audit.js"></script>
+</body>
+</html>

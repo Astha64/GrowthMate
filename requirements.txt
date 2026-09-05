@@ -1,0 +1,27 @@
+# GrowthMate backend dependencies.
+# Versions pinned from `pip freeze` after install (LLD §11.1).
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+python-dotenv==1.0.1
+
+# LLM + agent orchestration (LLD §11.1)
+langchain==1.3.18
+langchain-google-genai==4.3.7
+langgraph==1.2.11
+langchain-core==1.6.1
+
+# Database
+sqlalchemy==2.0.35
+
+# Payments (test mode)
+razorpay==1.4.2
+# razorpay 1.4.2 imports pkg_resources at runtime; pin setuptools<81 so that
+# package is present. Remove this pin if/when razorpay drops pkg_resources.
+setuptools<81
+
+# Tests
+pytest==8.3.3
+httpx>=0.28.1,<1.0.0

@@ -1,0 +1,420 @@
+{
+  "title": "GrowthMate Target Architecture Implementation Prompt",
+  "version": "1.0",
+  "language": "English",
+  "execution_mode": "repository_modification",
+  "prompt": "You are the senior staff engineer responsible for implementing the GrowthMate target architecture in the existing repository. Read the entire repository first, including README.md, AGENTS.md, app/, tests/, frontend/, seed_data.py, buyer_agent.py, and the three binding design files: docs/ARCHITECTURE.md, docs/HIGH_LEVEL_DESIGN.md, docs/LOW_LEVEL_DESIGN.md. Treat those design files as the target specification. Do not merely describe changes: inspect the existing implementation, implement the changes, update tests, and leave the repository in a runnable state. Preserve compatible behavior and backward-compatible public endpoints where practical, but prioritize the target design over obsolete implementation details.",
+  "source_of_truth": {
+    "architecture": "docs/ARCHITECTURE.md",
+    "high_level_design": "docs/HIGH_LEVEL_DESIGN.md",
+    "low_level_design": "docs/LOW_LEVEL_DESIGN.md",
+    "precedence": [
+      "LOW_LEVEL_DESIGN.md for exact interfaces and behavior",
+      "HIGH_LEVEL_DESIGN.md for module boundaries and system behavior",
+      "ARCHITECTURE.md for overall principles and trade-offs",
+      "existing source code for compatibility details when not contradictory"
+    ]
+  },
+  "primary_objective": "Transform GrowthMate from an LLM-first shopping agent into a latency-optimized merchant growth and agent-commerce platform that increases merchant revenue while keeping every money action deterministic, explainable, bounded, gated, and auditable.",
+  "non_negotiable_principles": [
+    "Do not call an LLM for deterministic work that the backend can perform exactly.",
+    "Do not call Gemini more than necessary; remove redundant post-tool LLM calls.",
+    "Do not treat external market discovery results as merchant inventory.",
+    "Only merchant-fulfillable SKUs may become payable cart items unless an explicit merchant mapping authorizes otherwise.",
+    "Cart totals, quote amounts, stock, approval, guardrails, and payment decisions must be deterministic backend logic.",
+    "Razorpay must only be reached after quote validation, explicit approval, cart integrity checks, and guardrail approval.",
+    "The LLM must never be the source of truth for payment amount or authorization.",
+    "Every material stage and money decision must be auditable without exposing chain-of-thought or secrets.",
+    "Optimize latency by avoiding unnecessary work, parallelizing independent work, caching semantically similar discovery queries, and using the least expensive intelligence path that meets the confidence requirement.",
+    "Prefer a modular monolith for the hackathon; do not introduce microservices or infrastructure complexity unless an explicit benchmark proves the need."
+  ],
+  "current_repository_context": {
+    "known_components": [
+      "FastAPI backend",
+      "SQLAlchemy + SQLite",
+      "LangGraph orchestration",
+      "Gemini via langchain-google-genai",
+      "SerpAPI-shaped external discovery code",
+      "Razorpay test-mode integration",
+      "deterministic approval and transaction guardrails",
+      "audit log",
+      "cart/order persistence",
+      "human chat frontend",
+      "audit frontend",
+      "buyer_agent.py external buyer demo",
+      "pytest test suite"
+    ],
+    "known_weaknesses_to_fix": [
+      "Gemini is currently involved in orchestration more often than necessary.",
+      "Tool results can trigger another LLM call merely for response generation.",
+      "External search is synchronous and has a long blocking timeout.",
+      "External results can conceptually enter the mixed payable cart.",
+      "Upselling is based mainly on simple category adjacency rather than expected incremental revenue.",
+      "There is no semantic cache above SerpAPI.",
+      "There is no first-class merchant-capture scoring engine.",
+      "Conversation state is reconstructed from broad request history rather than compact durable state.",
+      "Quote/cart integrity needs to be made explicit and cryptographically tied to the payable snapshot.",
+      "Agent-commerce capability discovery and quote APIs are not yet first-class."
+    ]
+  },
+  "required_target_architecture": {
+    "pipeline": [
+      "input validation and PII protection",
+      "fast intent/domain/category/complexity/risk classification",
+      "confidence gate",
+      "merchant semantic retrieval and/or semantic external cache lookup",
+      "selective SerpAPI live discovery when justified",
+      "external candidate normalization, deduplication, filtering, and ranking",
+      "merchant-capture engine mapping buyer market intent to merchant SKUs",
+      "next-best-offer engine using expected incremental revenue and friction budget",
+      "deterministic cart operations",
+      "backend quote creation",
+      "explicit approval validation",
+      "quote and cart integrity validation",
+      "deterministic guardrail check",
+      "Razorpay test-mode payment adapter",
+      "webhook processing",
+      "order update",
+      "growth analytics and learning feedback",
+      "audit and latency instrumentation throughout"
+    ],
+    "intelligence_plane": [
+      "intent extraction",
+      "structured requirement understanding",
+      "semantic classification",
+      "merchant semantic retrieval",
+      "market discovery interpretation",
+      "merchant capture scoring",
+      "offer selection",
+      "optional nuanced natural-language generation"
+    ],
+    "deterministic_plane": [
+      "catalog metadata filtering",
+      "inventory checks",
+      "cart mutation",
+      "cart total",
+      "quote hash",
+      "approval state validation",
+      "transaction/session limits",
+      "payment execution",
+      "webhook verification",
+      "order persistence"
+    ]
+  },
+  "implementation_tasks": {
+    "phase_0_repository_audit": [
+      "Read all current source files and tests before modifying code.",
+      "Compare current behavior with the three design files.",
+      "Identify obsolete assumptions, especially mixed external/merchant cart behavior and repeated LLM orchestration loops.",
+      "Keep a concise implementation checklist derived from the design docs."
+    ],
+    "phase_1_foundation": [
+      "Refactor or create clear modules for orchestration, routing, retrieval, intelligence, growth, commerce, policy, payments, and observability.",
+      "Preserve existing endpoint compatibility where practical.",
+      "Use Decimal for final money arithmetic.",
+      "Add trace_id and stage timing support.",
+      "Add configuration values through environment variables with safe defaults."
+    ],
+    "phase_2_fast_router": [
+      "Implement a local fast router that classifies intent, domain, category, complexity, risk, required action, need for merchant retrieval, need for live search, and confidence.",
+      "Use deterministic rules first.",
+      "Use local semantic classification/embeddings where useful.",
+      "Use a lightweight structured Gemini call only when confidence is insufficient.",
+      "Never use Gemini simply to decide a simple cart operation or render deterministic search results."
+    ],
+    "phase_3_merchant_rag": [
+      "Implement merchant semantic retrieval over product name, description, category, use cases, features, and compatibility metadata.",
+      "Use embeddings plus metadata filters.",
+      "Do not encode mutable price/stock as the only semantic representation; keep price/stock as authoritative metadata.",
+      "Keep the implementation simple enough for the current catalog size, but isolate the interface so pgvector can replace it later."
+    ],
+    "phase_4_semantic_external_cache": [
+      "Implement a semantic cache in front of SerpAPI.",
+      "Normalize the structured requirements and search query.",
+      "Generate a query embedding and compare against recent cached searches.",
+      "Return a cache hit only when similarity and freshness thresholds are both satisfied.",
+      "Never use external search cache as the source of truth for merchant pricing or checkout amount.",
+      "Persist successful normalized results with creation and expiry timestamps.",
+      "Handle cache corruption safely as a miss."
+    ],
+    "phase_5_async_discovery": [
+      "Replace blocking SerpAPI requests with an async HTTP client such as httpx.AsyncClient.",
+      "Use a configurable timeout that is materially shorter than the current 15-second synchronous timeout.",
+      "Isolate provider parsing in an adapter.",
+      "Normalize, deduplicate, hard-filter, and rank results deterministically.",
+      "Run independent retrieval tasks concurrently where useful.",
+      "Gracefully fall back to fresh cached market results or merchant-only retrieval when SerpAPI fails."
+    ],
+    "phase_6_merchant_capture": [
+      "Create Merchant Capture Engine as a first-class module.",
+      "Take buyer requirements and market candidates as input.",
+      "Retrieve candidate merchant SKUs.",
+      "Apply hard constraints for stock, budget, availability, and explicit requirements.",
+      "Score candidates using configurable semantic fit, requirement fit, price fit, stock, margin, attach potential, and merchant priority factors.",
+      "Return the best merchant-fulfillable match with reason codes and an explanation.",
+      "Do not put arbitrary external products into the payable cart."
+    ],
+    "phase_7_next_best_offer": [
+      "Replace hard-coded category-only upselling with a revenue-aware offer engine.",
+      "Generate complementary merchant SKUs.",
+      "Calculate acceptance probability using historical offer events with a smoothed prior.",
+      "Calculate expected incremental revenue as accept probability × incremental margin × inventory confidence − discount cost − friction penalty.",
+      "Enforce a maximum number of offers and a maximum add-on ratio.",
+      "Return no offer when confidence or expected incremental value is too low.",
+      "Record offer shown/accepted/rejected events."
+    ],
+    "phase_8_compact_state_and_orchestration": [
+      "Reduce raw history passed to the LLM.",
+      "Persist compact session state where required.",
+      "Refactor LangGraph into a thin state coordinator.",
+      "Do not loop back to Gemini after every deterministic tool execution.",
+      "Use deterministic response composition for structured outcomes whenever possible.",
+      "Use one structured LLM call for complex requirement understanding rather than multiple free-form turns."
+    ],
+    "phase_9_quote_and_safe_payment": [
+      "Implement a backend quote object tied to session, actor, cart version, cart hash, amount, currency, nonce, and expiry.",
+      "Create a canonical cart representation with deterministic ordering.",
+      "Compute a SHA-256 cart hash.",
+      "Require explicit approval after a checkout preview has been shown.",
+      "Validate that the current cart and current amount still match the quote.",
+      "Run deterministic actor/transaction/session guardrails.",
+      "Only after all checks pass may the Razorpay adapter be called.",
+      "Make repeated payment requests for the same valid quote safely idempotent where practical."
+    ],
+    "phase_10_agent_commerce": [
+      "Add GET /.well-known/agent-commerce.json.",
+      "Add POST /agent/discover.",
+      "Add POST /agent/quote.",
+      "Add POST /agent/checkout.",
+      "Add GET /agent/order/{order_id}.",
+      "Ensure these APIs reuse the same commerce and policy layer as the human chat UI.",
+      "Do not allow the agent API to bypass approval or guardrails."
+    ],
+    "phase_11_observability": [
+      "Add a trace_id to every request.",
+      "Measure latency for router, semantic cache, merchant retrieval, SerpAPI, Gemini, merchant capture, offer engine, DB, quote, guardrail, and Razorpay.",
+      "Record cache hit/miss, confidence, provider, result counts, errors, and stage duration.",
+      "Add a simple /metrics/latency endpoint or equivalent demo-friendly view if practical.",
+      "Never log secrets or raw payment credentials. Redact obvious PII."
+    ],
+    "phase_12_tests": [
+      "Update all existing tests for changed contracts.",
+      "Add unit tests for routing and confidence thresholds.",
+      "Add semantic cache tests for exact hit, semantic hit, stale miss, low-similarity miss, and corrupt entry.",
+      "Add merchant-capture ranking tests.",
+      "Add next-best-offer expected-value tests.",
+      "Add quote hash and cart version invalidation tests.",
+      "Add approval fail-closed tests.",
+      "Add guardrail tests and explicitly assert that blocked paths never invoke Razorpay.",
+      "Add SerpAPI failure fallback tests.",
+      "Add LLM timeout/failure fallback tests.",
+      "Add webhook idempotency tests.",
+      "Add end-to-end tests for human and buyer-agent paths with external dependencies mocked."
+    ]
+  },
+  "routing_rules": {
+    "simple_fast_path_examples": [
+      "add SKU X",
+      "remove SKU X",
+      "show my cart",
+      "what is my total",
+      "show checkout",
+      "yes proceed after a current valid preview",
+      "buy the selected merchant item"
+    ],
+    "live_search_triggers": [
+      "buyer explicitly asks for market options or alternatives",
+      "merchant catalog does not have sufficient candidates",
+      "market benchmarking materially improves confidence",
+      "router marks live_search_required=true"
+    ],
+    "no_live_search_cases": [
+      "known merchant SKU operation",
+      "cart-only operation",
+      "checkout or approval operation where the merchant catalog and current cart are authoritative",
+      "fresh semantic cache hit that passes similarity and freshness thresholds"
+    ],
+    "confidence_policy": {
+      "high": ">=0.90: deterministic or lightweight path",
+      "medium": "0.70-0.89: one structured lightweight LLM call if needed",
+      "low": "<0.70: clarify or use stronger reasoning"
+    }
+  },
+  "latency_requirements": {
+    "primary_strategy": "Reduce the amount of work before optimizing individual calls.",
+    "required_optimizations": [
+      "remove redundant Gemini calls",
+      "avoid Gemini for deterministic cart/catalog actions",
+      "avoid SerpAPI when semantic cache is sufficiently fresh",
+      "use async outbound HTTP",
+      "parallelize independent retrieval operations",
+      "send compact state instead of full history where possible",
+      "use structured model output with small schemas",
+      "use minimal reasoning for low-complexity model calls",
+      "cache embeddings for stable merchant products"
+    ],
+    "measurement": "Do not claim latency improvement without measuring stage-level P50 and P95 before and after."
+  },
+  "accuracy_requirements": [
+    "Hard constraints must always be applied after semantic retrieval.",
+    "Stock and merchant price must come from the merchant database, not external search or LLM output.",
+    "A semantic cache hit must still pass freshness and confidence checks.",
+    "Low-confidence recommendation should trigger clarification or merchant-only fallback rather than a fabricated answer.",
+    "External market data must never silently override merchant price or inventory.",
+    "Offer engine may choose no offer when expected incremental value is low.",
+    "Approval must fail closed.",
+    "Payment must fail closed."
+  ],
+  "money_action_contract": {
+    "preconditions": [
+      "merchant cart is non-empty",
+      "quote exists",
+      "quote is unexpired",
+      "current cart hash matches quote",
+      "current cart version matches quote",
+      "approval is explicit and linked to the quote/current turn",
+      "actor is authorized",
+      "transaction amount is within actor limit",
+      "session spend remains within actor limit"
+    ],
+    "execution": "Only the payment adapter may call Razorpay, and only after all preconditions pass.",
+    "blocked_behavior": "Return a normal structured response with blocked=true, audit the reason, and do not call Razorpay."
+  },
+  "data_model_requirements": {
+    "products": [
+      "sku",
+      "name",
+      "description",
+      "price",
+      "currency",
+      "stock",
+      "category",
+      "semantic_text",
+      "embedding",
+      "merchant_priority",
+      "optional unit_cost/margin_pct"
+    ],
+    "external_product_listings": [
+      "session_id",
+      "query_normalized",
+      "source",
+      "source_url",
+      "name",
+      "price",
+      "currency",
+      "brand",
+      "features_json",
+      "rating",
+      "availability",
+      "dedup_group_id",
+      "embedding",
+      "retrieved_at",
+      "expires_at"
+    ],
+    "cart_items": [
+      "session_id",
+      "item_type=merchant",
+      "merchant SKU reference",
+      "name snapshot",
+      "price snapshot",
+      "quantity",
+      "cart version semantics"
+    ],
+    "quotes": [
+      "quote_id",
+      "session_id",
+      "actor",
+      "cart_version",
+      "cart_hash",
+      "amount",
+      "currency",
+      "status",
+      "nonce",
+      "created_at",
+      "expires_at"
+    ],
+    "offer_events": [
+      "session_id",
+      "base_sku",
+      "offer_sku",
+      "shown",
+      "accepted",
+      "accept_probability",
+      "expected_incremental_revenue",
+      "created_at"
+    ],
+    "session_state": [
+      "session_id",
+      "actor",
+      "state_json",
+      "cart_version",
+      "updated_at"
+    ]
+  },
+  "api_requirements": {
+    "preserve": [
+      "GET /health",
+      "GET /catalog",
+      "POST /chat",
+      "GET /audit",
+      "POST /webhook/razorpay"
+    ],
+    "add": [
+      "GET /.well-known/agent-commerce.json",
+      "POST /agent/discover",
+      "POST /agent/quote",
+      "POST /agent/checkout",
+      "GET /agent/order/{order_id}",
+      "GET /metrics/latency"
+    ],
+    "rules": [
+      "Use Pydantic schemas.",
+      "Do not expose secrets.",
+      "Do not expose hidden chain-of-thought.",
+      "Return deterministic error shapes.",
+      "Expected guardrail blocks should be HTTP 200 control-flow responses unless an API contract explicitly requires otherwise."
+    ]
+  },
+  "failure_handling": {
+    "gemini": "On failure, fall back to deterministic routing/catalog/cart logic where possible. Never make up product, pricing, or payment facts.",
+    "serpapi": "On timeout/error, use fresh semantic cache if available; otherwise use merchant-only retrieval with reduced-confidence messaging.",
+    "razorpay": "Persist failed order state and tell the user no successful charge occurred unless success is confirmed by the payment flow/webhook.",
+    "database": "Return a controlled server error for unrecoverable DB failures; do not silently claim state changed.",
+    "webhook": "Reject invalid signatures; process valid events idempotently."
+  },
+  "demo_requirements": {
+    "normal_demo": "A buyer asks for a product with a budget; GrowthMate discovers or retrieves candidates, maps the intent to a merchant SKU, suggests one high-value add-on, builds a cart, creates a quote, obtains approval, passes guardrails, and creates a Razorpay test-mode payment flow.",
+    "agent_buyer_demo": "An external buyer agent uses the agent-commerce endpoints instead of the human UI and still receives the same merchant discovery, quote, guardrail, and payment behavior.",
+    "failure_demo": "A buyer-agent transaction deliberately exceeds the configured per-transaction limit; the system returns blocked=true, explains the bound, writes the audit event, and proves that Razorpay was not called.",
+    "latency_demo": "Show before/after stage latency, Gemini call count, SerpAPI call count, semantic cache hit rate, and P50/P95 latency."
+  },
+  "coding_rules": [
+    "Use type hints throughout new code.",
+    "Keep provider-specific code behind adapters.",
+    "Keep guardrail and quote validation deterministic and unit-testable.",
+    "Avoid global mutable state except explicitly documented process-local caches.",
+    "Use async HTTP for external network operations in async paths.",
+    "Do not add unnecessary dependencies; reuse installed packages when possible.",
+    "Use structured logging where practical.",
+    "Keep functions small and single-purpose.",
+    "Do not duplicate pricing logic across layers.",
+    "Use one canonical source of truth for cart total.",
+    "Do not persist raw secrets or sensitive request contents in audit logs."
+  ],
+  "definition_of_done": [
+    "All design-required modules are implemented or intentionally mapped to existing compatible modules.",
+    "Existing tests pass after updates.",
+    "New tests cover routing, semantic cache, merchant capture, offer scoring, quote integrity, policy, and dependency failures.",
+    "Simple operations avoid unnecessary Gemini calls.",
+    "SerpAPI is skipped on valid semantic cache hits.",
+    "External products cannot be charged directly unless explicitly mapped to merchant inventory.",
+    "Merchant Capture Engine produces explainable mapping decisions.",
+    "Next Best Offer Engine optimizes expected incremental revenue with a friction budget.",
+    "Every payment attempt is quote-bound, approval-bound, guardrail-bound, and auditable.",
+    "At least one end-to-end blocked payment test proves the Razorpay adapter is not invoked.",
+    "Latency and cache metrics are visible enough to compare before/after.",
+    "README and design docs are updated to match the actual implementation.",
+    "The app can be started locally with the documented commands and no hidden manual steps."
+  ],
+  "final_response_required_from_opencode": "After implementation, report: files changed, architecture changes, latency optimizations, new APIs, test results, any design deviations, and exact commands to run the demo and tests. Do not claim a feature is complete unless it is implemented and tested."
+}

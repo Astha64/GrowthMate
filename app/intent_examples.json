@@ -1,0 +1,43 @@
+{
+  "discover": [
+    "running shoes under 2500",
+    "running shoes",
+    "wireless earbuds",
+    "leather wallet for men",
+    "usb c fast charger",
+    "ceramic coffee mug",
+    "a nice cotton tshirt",
+    "desk lamp with led",
+    "buy me a pair of sneakers",
+    "top rated bluetooth speaker",
+    "wireless mouse for gaming",
+    "smartwatch with good battery"
+  ],
+  "cart": [
+    "show my cart",
+    "what is in my cart",
+    "how much is my cart total",
+    "add APP-001",
+    "remove SHOE-001",
+    "clear my cart",
+    "empty my basket"
+  ],
+  "checkout": [
+    "checkout",
+    "check out",
+    "ready to pay",
+    "proceed to payment"
+  ],
+  "catalog": [
+    "show me your catalog",
+    "what do you sell",
+    "browse products",
+    "list your products"
+  ],
+  "greeting": [
+    "hi",
+    "hello",
+    "hey there",
+    "good morning"
+  ]
+}

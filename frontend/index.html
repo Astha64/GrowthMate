@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GrowthMate — AI Sales Agent</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>GrowthMate</h1>
+      <span class="tagline">AI Growth &amp; Agentic Commerce</span>
+      <nav>
+        <a href="/static/index.html">Chat</a>
+        <a href="/static/audit.html">Audit Trail</a>
+      </nav>
+    </header>
+
+    <main class="chat-shell">
+      <div id="messages" class="messages" aria-live="polite">
+        <div class="msg bot">Hi! I'm GrowthMate, your merchant's AI sales agent.
+          Tell me what you're looking for (e.g. "running shoes under 2000"),
+          and I'll find the best options, suggest add-ons, and guide you
+          through a secure checkout.</div>
+      </div>
+
+      <form id="chat-form" class="composer">
+        <input type="text" id="input" placeholder="e.g. I need running shoes under 2000" autocomplete="off" />
+        <button type="submit">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script src="/static/chat.js"></script>
+</body>
+</html>

@@ -11,7 +11,7 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.2-black.svg)](https://www.langchain.com/langgraph)
 [![Razorpay](https://img.shields.io/badge/Razorpay-Test%20Mode-3395FF.svg)](https://razorpay.com/)
 [![Tests](https://img.shields.io/badge/tests-pytest-brightgreen.svg)](#testing)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](#license)
+
 
 [Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Demo](#-demo-journeys) • [API](#-api-surface) • [Contributing](#-contributing)
 
